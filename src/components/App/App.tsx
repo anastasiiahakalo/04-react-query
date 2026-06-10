@@ -1,7 +1,8 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import css from "./App.module.css";
 import { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 import SearchBar from "../SearchBar/SearchBar";
 import MovieGrid from "../MovieGrid/MovieGrid";
@@ -11,7 +12,8 @@ import MovieModal from "../MovieModal/MovieModal";
 
 import { fetchMovies } from "../../services/movieService";
 import type { Movie } from "../../types/movie";
-import { useQuery } from "@tanstack/react-query";
+
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 
 import ReactPaginateModule from "react-paginate";
@@ -44,6 +46,8 @@ const {
   data,
   isLoading,
   isError,
+  isSuccess,
+  isFetching,
 } = useQuery({
   queryKey: ["movies", query, page],
 
@@ -51,10 +55,17 @@ const {
     fetchMovies(query, page),
 
   enabled: query !== "",
+  placeholderData: keepPreviousData,
 });
 
 const movies = data?.results ?? [];
 const totalPages = data?.total_pages ?? 0;
+
+useEffect(() => {
+    if (isSuccess && movies.length === 0) {
+      toast.error("No movies found for your request.");
+    }
+  }, [isSuccess, movies.length]);
 
   return (
     <>
@@ -62,7 +73,7 @@ const totalPages = data?.total_pages ?? 0;
 
       <Toaster position="top-right" />
 
-      {isLoading && <Loader />}
+      {(isLoading || isFetching) && <Loader />}
 
       {isError && <ErrorMessage />}
 
